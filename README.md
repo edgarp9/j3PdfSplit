@@ -4,6 +4,9 @@ j3PdfSplit is a small desktop utility for splitting PDF files from a thumbnail-b
 
 It is designed for quick internal document handling: open a PDF, inspect its pages as thumbnails, then either split the document sequentially or export selected pages into a new PDF.
 
+<img width="523" height="568" alt="j3PdfSplit" src="https://github.com/user-attachments/assets/aef1e8ea-ffb0-4941-bfd8-b529f86ee27f" />
+
+
 ## Features
 
 - Open a PDF from the file picker or by drag and drop.
