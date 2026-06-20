@@ -1,0 +1,4 @@
+Pillow>=12.1.1
+PyMuPDF>=1.27.1
+pypdf>=6.7.5
+tkinterdnd2>=0.4.3
