@@ -2,17 +2,29 @@
 
 from pathlib import Path
 
-from PyInstaller.utils.hooks import collect_data_files
+from PyInstaller.utils.hooks import collect_data_files, copy_metadata
 
 
 PROJECT_ROOT = Path(SPECPATH).resolve()
 TKINTERDND2_DATAS = collect_data_files('tkinterdnd2')
+RUNTIME_METADATA_DATAS = [
+    *copy_metadata('Pillow'),
+    *copy_metadata('PyMuPDF'),
+    *copy_metadata('pypdf'),
+    *copy_metadata('tkinterdnd2'),
+]
+LEGAL_NOTICE_DATAS = [
+    (str(PROJECT_ROOT / 'LICENSE'), '.'),
+    (str(PROJECT_ROOT / 'THIRD_PARTY_NOTICES.txt'), '.'),
+    (str(PROJECT_ROOT / 'about.txt'), '.'),
+    (str(PROJECT_ROOT / 'licenses' / 'tkdnd' / 'license.terms'), 'licenses/tkdnd'),
+]
 
 a = Analysis(
     [str(PROJECT_ROOT / 'pdf_splitter' / 'main.py')],
     pathex=[str(PROJECT_ROOT)],
     binaries=[],
-    datas=TKINTERDND2_DATAS,
+    datas=[*TKINTERDND2_DATAS, *RUNTIME_METADATA_DATAS, *LEGAL_NOTICE_DATAS],
     hiddenimports=['tkinterdnd2'],
     hookspath=[],
     hooksconfig={},

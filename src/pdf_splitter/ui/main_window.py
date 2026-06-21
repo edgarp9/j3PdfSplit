@@ -14,7 +14,11 @@ from typing import Any
 
 from PIL import ImageTk
 
-from pdf_splitter.app_info import APP_NAME, AUTHOR_URL, app_version
+from pdf_splitter.app_info import ABOUT_FILE, APP_NAME, AUTHOR_URL, NOTICE_REQUIRED_LICENSES
+from pdf_splitter.app_info import PROJECT_LICENSE_FILE
+from pdf_splitter.app_info import PROJECT_LICENSE_NAME
+from pdf_splitter.app_info import PROJECT_LICENSE_URL, default_about_text
+from pdf_splitter.app_info import THIRD_PARTY_NOTICES_FILE, corresponding_source_url
 from pdf_splitter.app.controller import (
     ExportedPages,
     SavedSegment,
@@ -34,6 +38,7 @@ from pdf_splitter.infra.pdf_service import (
     PdfThumbnailError,
 )
 from pdf_splitter.infra.browser import open_url
+from pdf_splitter.infra.legal_text import read_legal_text
 from pdf_splitter.ui.localization import DEFAULT_LANGUAGE
 from pdf_splitter.ui.localization import UiLanguage
 from pdf_splitter.ui.localization import language_from_label
@@ -78,6 +83,11 @@ class PdfSplitApplication(ttk.Frame):
     ABOUT_DIALOG_PADDING = 18
     ABOUT_CONTENT_GAP = 12
     ABOUT_FOOTER_GAP = 16
+    ABOUT_TEXT_HEIGHT = 20
+    ABOUT_TEXT_WIDTH = 72
+    LICENSE_DIALOG_WRAP_LENGTH = 420
+    LICENSE_NOTICE_TEXT_HEIGHT = 22
+    LICENSE_NOTICE_TEXT_WIDTH = 88
     FILE_MENU_INDEX = 0
     LANGUAGE_MENU_INDEX = 1
     HELP_MENU_INDEX = 2
@@ -479,7 +489,7 @@ class PdfSplitApplication(ttk.Frame):
         dialog = tk.Toplevel(root)
         dialog.title(self._text("about.title"))
         dialog.transient(root)
-        dialog.resizable(False, False)
+        dialog.resizable(True, True)
         dialog.protocol("WM_DELETE_WINDOW", dialog.destroy)
 
         content = ttk.Frame(
@@ -494,11 +504,36 @@ class PdfSplitApplication(ttk.Frame):
         content.pack(fill="both", expand=True)
 
         ttk.Label(content, text=APP_NAME, style="Title.TLabel").pack(anchor="w")
-        ttk.Label(
-            content,
-            text=self._text("about.version", version=app_version()),
-            style="Info.TLabel",
-        ).pack(anchor="w", pady=self._ui_scale.padding(self.ABOUT_CONTENT_GAP, 0))
+        about_frame = ttk.Frame(content)
+        about_frame.pack(
+            fill="both",
+            expand=True,
+            pady=self._ui_scale.padding(self.ABOUT_CONTENT_GAP, 0),
+        )
+        about_frame.columnconfigure(0, weight=1)
+        about_frame.rowconfigure(0, weight=1)
+        about_text = tk.Text(
+            about_frame,
+            width=self.ABOUT_TEXT_WIDTH,
+            height=self.ABOUT_TEXT_HEIGHT,
+            wrap="word",
+            relief="solid",
+            borderwidth=1,
+            font=self._ui_scale.font(9),
+        )
+        about_scrollbar = ttk.Scrollbar(
+            about_frame,
+            orient="vertical",
+            command=about_text.yview,
+        )
+        about_text.configure(yscrollcommand=about_scrollbar.set)
+        about_text.grid(row=0, column=0, sticky="nsew")
+        about_scrollbar.grid(row=0, column=1, sticky="ns")
+        about_text.insert(
+            "1.0",
+            read_legal_text(ABOUT_FILE, fallback=default_about_text()),
+        )
+        about_text.configure(state="disabled")
 
         footer = ttk.Frame(content)
         footer.pack(fill="x", pady=self._ui_scale.padding(self.ABOUT_FOOTER_GAP, 0))
@@ -515,12 +550,166 @@ class PdfSplitApplication(ttk.Frame):
             text=self._text("about.close"),
             command=dialog.destroy,
         ).pack(side="right")
+        ttk.Button(
+            footer,
+            text=self._text("about.licenses"),
+            command=self._show_license_dialog,
+        ).pack(side="right", padx=self._ui_scale.padding(self.INLINE_GAP, 0))
 
         return dialog
 
     def _on_about_link_clicked(self, _event: tk.Event[tk.Misc]) -> None:
         if not open_url(AUTHOR_URL):
             LOGGER.warning("Could not open URL in browser: %s", AUTHOR_URL)
+
+    def _show_license_dialog(self) -> None:
+        dialog = self._create_license_dialog()
+        self._center_on_root(dialog)
+        dialog.grab_set()
+        dialog.focus_set()
+        dialog.wait_window()
+
+    def _create_license_dialog(self) -> tk.Toplevel:
+        root = self.winfo_toplevel()
+        dialog = tk.Toplevel(root)
+        dialog.title(self._text("licenses.title"))
+        dialog.transient(root)
+        dialog.resizable(True, True)
+        dialog.protocol("WM_DELETE_WINDOW", dialog.destroy)
+
+        content = ttk.Frame(
+            dialog,
+            padding=self._ui_scale.padding(
+                self.ABOUT_DIALOG_PADDING,
+                self.ABOUT_DIALOG_PADDING,
+                self.ABOUT_DIALOG_PADDING,
+                self.ABOUT_DIALOG_PADDING,
+            ),
+        )
+        content.pack(fill="both", expand=True)
+
+        ttk.Label(
+            content,
+            text=self._text(
+                "licenses.project",
+                app_name=APP_NAME,
+                license_name=PROJECT_LICENSE_NAME,
+            ),
+            style="Info.TLabel",
+            wraplength=self._ui_scale.scale(self.LICENSE_DIALOG_WRAP_LENGTH),
+        ).pack(anchor="w")
+        ttk.Label(
+            content,
+            text=self._text("licenses.no_warranty"),
+            style="Info.TLabel",
+            wraplength=self._ui_scale.scale(self.LICENSE_DIALOG_WRAP_LENGTH),
+        ).pack(anchor="w", pady=self._ui_scale.padding(self.ABOUT_CONTENT_GAP, 0))
+        ttk.Label(
+            content,
+            text=self._text("licenses.project_file", license_file=PROJECT_LICENSE_FILE),
+            style="Info.TLabel",
+            wraplength=self._ui_scale.scale(self.LICENSE_DIALOG_WRAP_LENGTH),
+        ).pack(anchor="w")
+        ttk.Label(
+            content,
+            text=self._text("licenses.notice_required"),
+            style="Info.TLabel",
+            wraplength=self._ui_scale.scale(self.LICENSE_DIALOG_WRAP_LENGTH),
+        ).pack(anchor="w", pady=self._ui_scale.padding(self.ABOUT_CONTENT_GAP, 0))
+        notice_frame = ttk.Frame(content)
+        notice_frame.pack(fill="both", expand=True)
+        notice_frame.columnconfigure(0, weight=1)
+        notice_frame.rowconfigure(0, weight=1)
+        notice_text = tk.Text(
+            notice_frame,
+            width=self.LICENSE_NOTICE_TEXT_WIDTH,
+            height=self.LICENSE_NOTICE_TEXT_HEIGHT,
+            wrap="word",
+            relief="solid",
+            borderwidth=1,
+            font=self._ui_scale.font(9),
+        )
+        notice_scrollbar = ttk.Scrollbar(
+            notice_frame,
+            orient="vertical",
+            command=notice_text.yview,
+        )
+        notice_text.configure(yscrollcommand=notice_scrollbar.set)
+        notice_text.grid(row=0, column=0, sticky="nsew")
+        notice_scrollbar.grid(row=0, column=1, sticky="ns")
+        notice_text.insert("1.0", self._license_notices_text())
+        notice_text.configure(state="disabled")
+        ttk.Label(
+            content,
+            text=self._text("licenses.third_party", notice_file=THIRD_PARTY_NOTICES_FILE),
+            style="Info.TLabel",
+            wraplength=self._ui_scale.scale(self.LICENSE_DIALOG_WRAP_LENGTH),
+        ).pack(
+            anchor="w",
+            pady=self._ui_scale.padding(self.ABOUT_CONTENT_GAP, 0),
+        )
+        ttk.Label(
+            content,
+            text=self._text("licenses.source"),
+            style="Info.TLabel",
+            wraplength=self._ui_scale.scale(self.LICENSE_DIALOG_WRAP_LENGTH),
+        ).pack(anchor="w")
+
+        source_url = corresponding_source_url()
+        source_link_label = ttk.Label(
+            content,
+            text=source_url,
+            style="Link.TLabel",
+            cursor="hand2",
+            wraplength=self._ui_scale.scale(self.LICENSE_DIALOG_WRAP_LENGTH),
+        )
+        source_link_label.pack(anchor="w", pady=self._ui_scale.padding(self.ABOUT_CONTENT_GAP, 0))
+        source_link_label.bind("<Button-1>", self._on_source_link_clicked)
+
+        link_label = ttk.Label(
+            content,
+            text=PROJECT_LICENSE_URL,
+            style="Link.TLabel",
+            cursor="hand2",
+            wraplength=self._ui_scale.scale(self.LICENSE_DIALOG_WRAP_LENGTH),
+        )
+        link_label.pack(anchor="w", pady=self._ui_scale.padding(self.ABOUT_CONTENT_GAP, 0))
+        link_label.bind("<Button-1>", self._on_license_link_clicked)
+
+        ttk.Button(
+            content,
+            text=self._text("about.close"),
+            command=dialog.destroy,
+        ).pack(anchor="e", pady=self._ui_scale.padding(self.ABOUT_FOOTER_GAP, 0))
+
+        return dialog
+
+    def _license_notices_text(self) -> str:
+        notices: list[str] = []
+        for license_notice in NOTICE_REQUIRED_LICENSES:
+            notices.append(
+                self._text(
+                    "licenses.notice_item",
+                    component=license_notice.component,
+                    version=license_notice.version,
+                    license_name=license_notice.license_name,
+                    copyright_notice=license_notice.copyright_notice,
+                    source_url=license_notice.source_url,
+                    license_file=license_notice.license_file,
+                    distributed=license_notice.distributed,
+                    compliance_note=license_notice.compliance_note,
+                )
+            )
+        return "\n\n".join(notices)
+
+    def _on_license_link_clicked(self, _event: tk.Event[tk.Misc]) -> None:
+        if not open_url(PROJECT_LICENSE_URL):
+            LOGGER.warning("Could not open URL in browser: %s", PROJECT_LICENSE_URL)
+
+    def _on_source_link_clicked(self, _event: tk.Event[tk.Misc]) -> None:
+        source_url = corresponding_source_url()
+        if not open_url(source_url):
+            LOGGER.warning("Could not open URL in browser: %s", source_url)
 
     def _center_on_root(self, child: tk.Toplevel) -> None:
         root = self.winfo_toplevel()

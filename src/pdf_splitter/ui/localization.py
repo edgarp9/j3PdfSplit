@@ -24,6 +24,14 @@ _TRANSLATIONS: dict[UiLanguage, dict[str, str]] = {
         "app.title": "PDF Splitter",
         "app.window_title": "j3PdfSplit",
         "about.close": "Close",
+        "about.copyright": "{copyright_notice}",
+        "about.gpl_distribution": (
+            "This program is distributed under the GPL-3.0-or-later license."
+        ),
+        "about.license_path": "Full license text: {license_file}",
+        "about.licenses": "Licenses",
+        "about.project_license": "Project license: {license_name}",
+        "about.source_code": "Source code: {source_url}",
         "about.title": "About j3PdfSplit",
         "about.version": "Version {version}",
         "button.export": "Export",
@@ -81,6 +89,23 @@ _TRANSLATIONS: dict[UiLanguage, dict[str, str]] = {
         "label.language": "Language",
         "label.mode": "Mode",
         "label.thumbnail_size": "Thumbnail size",
+        "licenses.no_warranty": "This program is distributed without warranty.",
+        "licenses.notice_item": (
+            "{component}\n"
+            "Version: {version}\n"
+            "License: {license_name}\n"
+            "Copyright: {copyright_notice}\n"
+            "Source: {source_url}\n"
+            "License text or notice file: {license_file}\n"
+            "Included in distribution: {distributed}\n"
+            "Compliance note: {compliance_note}"
+        ),
+        "licenses.notice_required": "Notice-required licenses:",
+        "licenses.project": "{app_name} is licensed under {license_name}.",
+        "licenses.project_file": "Project license file: {license_file}",
+        "licenses.source": "Corresponding source code for this binary release:",
+        "licenses.third_party": "Third-party notices are included in {notice_file}.",
+        "licenses.title": "Licenses",
         "menu.about": "About",
         "menu.file": "File",
         "menu.help": "Help",
@@ -131,6 +156,14 @@ _TRANSLATIONS: dict[UiLanguage, dict[str, str]] = {
         "app.title": "PDF 분할기",
         "app.window_title": "j3PdfSplit",
         "about.close": "닫기",
+        "about.copyright": "{copyright_notice}",
+        "about.gpl_distribution": (
+            "이 프로그램은 GPL-3.0-or-later 라이선스에 따라 배포됩니다."
+        ),
+        "about.license_path": "라이선스 전문 확인 경로: {license_file}",
+        "about.licenses": "라이선스",
+        "about.project_license": "프로젝트 라이선스: {license_name}",
+        "about.source_code": "소스코드 제공 위치: {source_url}",
         "about.title": "j3PdfSplit 정보",
         "about.version": "버전 {version}",
         "button.export": "내보내기",
@@ -189,6 +222,23 @@ _TRANSLATIONS: dict[UiLanguage, dict[str, str]] = {
         "label.language": "언어",
         "label.mode": "모드",
         "label.thumbnail_size": "썸네일 크기",
+        "licenses.no_warranty": "이 프로그램은 어떠한 보증 없이 배포됩니다.",
+        "licenses.notice_item": (
+            "{component}\n"
+            "버전: {version}\n"
+            "라이선스: {license_name}\n"
+            "저작권: {copyright_notice}\n"
+            "원본 URL: {source_url}\n"
+            "라이선스 전문 또는 고지 파일: {license_file}\n"
+            "배포물 포함 여부: {distributed}\n"
+            "준수 메모: {compliance_note}"
+        ),
+        "licenses.notice_required": "고지가 필요한 라이선스:",
+        "licenses.project": "{app_name}은 {license_name} 라이선스로 배포됩니다.",
+        "licenses.project_file": "프로젝트 라이선스 파일: {license_file}",
+        "licenses.source": "이 바이너리 릴리스의 대응 소스 코드:",
+        "licenses.third_party": "외부 라이브러리 고지는 {notice_file}에 포함되어 있습니다.",
+        "licenses.title": "라이선스",
         "menu.about": "정보",
         "menu.file": "파일",
         "menu.help": "도움말",

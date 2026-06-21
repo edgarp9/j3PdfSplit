@@ -1,0 +1,4 @@
+include LICENSE
+include THIRD_PARTY_NOTICES.txt
+include about.txt
+recursive-include licenses/tkdnd license.terms

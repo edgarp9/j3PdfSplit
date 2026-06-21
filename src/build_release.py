@@ -22,7 +22,22 @@ SPEC_FILES_BY_PLATFORM = {
     "windows": "PdfSplitter.spec",
     "linux": "PdfSplitter.spec",
 }
-REQUIRED_LIB_PATHS: tuple[str, ...] = ()
+REQUIRED_LIB_PATHS: tuple[str, ...] = (
+    "LICENSE",
+    "THIRD_PARTY_NOTICES.txt",
+    "about.txt",
+    "licenses/tkdnd/license.terms",
+)
+REQUIRED_LIB_GLOBS: tuple[str, ...] = (
+    "pillow-*.dist-info/licenses/LICENSE",
+    "pymupdf-*.dist-info/COPYING",
+    "pypdf-*.dist-info/licenses/LICENSE",
+    "tkinterdnd2-*.dist-info/licenses/LICENSE",
+    "licenses/python/LICENSE.txt",
+    "licenses/tcl-tk/*/license.terms",
+)
+PYTHON_LICENSE_DEST = Path("licenses/python/LICENSE.txt")
+TCL_TK_LICENSE_DEST_DIR = Path("licenses/tcl-tk")
 
 LOGGER = logging.getLogger("build_release")
 
@@ -99,6 +114,88 @@ def remove_tree(target: Path, root: Path) -> None:
     shutil.rmtree(target)
 
 
+def _deduplicate_existing_files(paths: list[Path]) -> tuple[Path, ...]:
+    seen: set[Path] = set()
+    existing_paths: list[Path] = []
+    for path in paths:
+        try:
+            resolved = path.resolve()
+        except OSError:
+            continue
+        if resolved in seen or not resolved.is_file():
+            continue
+        seen.add(resolved)
+        existing_paths.append(resolved)
+    return tuple(existing_paths)
+
+
+def python_license_candidates() -> tuple[Path, ...]:
+    roots = {
+        Path(sys.base_prefix),
+        Path(sys.base_exec_prefix),
+        Path(sys.executable).resolve().parent,
+    }
+    candidates: list[Path] = []
+    for root in roots:
+        candidates.extend((root / "LICENSE.txt", root / "LICENSE"))
+
+    if os.name != "nt":
+        python_major_minor = f"python{sys.version_info.major}.{sys.version_info.minor}"
+        candidates.extend(
+            (
+                Path("/usr/share/doc") / python_major_minor / "copyright",
+                Path("/usr/share/doc") / f"python{sys.version_info.major}" / "copyright",
+            )
+        )
+    return tuple(candidates)
+
+
+def tcl_tk_license_sources() -> tuple[Path, ...]:
+    candidates: list[Path] = []
+    try:
+        import tkinter
+
+        interpreter = tkinter.Tcl()
+        tcl_library = Path(interpreter.eval("info library")).resolve()
+        candidates.append(tcl_library / "license.terms")
+        candidates.extend(tcl_library.parent.glob("tcl*/license.terms"))
+        candidates.extend(tcl_library.parent.glob("tk*/license.terms"))
+    except Exception as exc:  # noqa: BLE001
+        LOGGER.debug("Tcl/Tk license discovery via tkinter failed: %s", exc)
+
+    bundled_tcl_root = Path(sys.base_prefix) / "tcl"
+    if bundled_tcl_root.is_dir():
+        candidates.extend(bundled_tcl_root.glob("*/license.terms"))
+
+    return _deduplicate_existing_files(candidates)
+
+
+def copy_file(source: Path, destination: Path) -> None:
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(source, destination)
+
+
+def copy_runtime_license_files(support_dir: Path) -> None:
+    python_license_sources = _deduplicate_existing_files(list(python_license_candidates()))
+    if not python_license_sources:
+        raise BuildConfigurationError(
+            "Python 런타임 라이선스 파일을 찾을 수 없습니다. "
+            "릴리스 번들에 PSF 라이선스 고지를 포함해야 합니다."
+        )
+    copy_file(python_license_sources[0], support_dir / PYTHON_LICENSE_DEST)
+
+    tcl_tk_sources = tcl_tk_license_sources()
+    if not tcl_tk_sources:
+        raise BuildConfigurationError(
+            "Tcl/Tk license.terms 파일을 찾을 수 없습니다. "
+            "Tkinter 릴리스 번들에 Tcl/Tk 라이선스 고지를 포함해야 합니다."
+        )
+
+    for source in tcl_tk_sources:
+        destination = support_dir / TCL_TK_LICENSE_DEST_DIR / source.parent.name / source.name
+        copy_file(source, destination)
+
+
 def build_command(
     root: Path,
     platform_name: str,
@@ -149,6 +246,9 @@ def verify_output(root: Path, platform_name: str) -> None:
         expected = support_dir / relative_path
         if not expected.exists():
             raise BuildConfigurationError(f"번들 리소스가 누락되었습니다: {expected}")
+    for path_pattern in REQUIRED_LIB_GLOBS:
+        if not any(support_dir.glob(path_pattern)):
+            raise BuildConfigurationError(f"번들 라이선스 파일이 누락되었습니다: {path_pattern}")
 
 
 def run_release_build(*, clean: bool, dry_run: bool, extra_args: list[str]) -> int:
@@ -178,6 +278,7 @@ def run_release_build(*, clean: bool, dry_run: bool, extra_args: list[str]) -> i
     remove_tree(bundle_dir, root)
     remove_tree(work_dir, root)
     subprocess.run(command, check=True, cwd=root, env=build_environment())
+    copy_runtime_license_files(support_dir)
     verify_output(root, platform_name)
     LOGGER.info("Build completed: %s", bundle_dir)
     return 0

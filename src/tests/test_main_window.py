@@ -8,7 +8,11 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 from pdf_splitter.app.controller import SequentialPdfSplitController
-from pdf_splitter.app_info import APP_NAME, AUTHOR_URL, app_version
+from pdf_splitter.app_info import ABOUT_FILE, APP_NAME, AUTHOR_URL, NOTICE_REQUIRED_LICENSES
+from pdf_splitter.app_info import PROJECT_COPYRIGHT, PROJECT_LICENSE_FILE
+from pdf_splitter.app_info import PROJECT_LICENSE_NAME
+from pdf_splitter.app_info import PROJECT_LICENSE_URL, app_version
+from pdf_splitter.app_info import THIRD_PARTY_NOTICES_FILE, corresponding_source_url
 from pdf_splitter.infra.pdf_service import PdfProcessingService
 from pdf_splitter.ui.main_window import APP_TITLE, PdfSplitApplication
 from pdf_splitter.ui.localization import DEFAULT_LANGUAGE
@@ -20,6 +24,14 @@ def _walk_widgets(widget: tk.Widget):
     yield widget
     for child in widget.winfo_children():
         yield from _walk_widgets(child)
+
+
+def _text_widget_contents(widget: tk.Widget) -> str:
+    contents = []
+    for child in _walk_widgets(widget):
+        if isinstance(child, tk.Text):
+            contents.append(child.get("1.0", "end-1c"))
+    return "\n".join(contents)
 
 
 class ThumbnailScaleHelperTests(unittest.TestCase):
@@ -350,17 +362,78 @@ class MainWindowMenuTests(unittest.TestCase):
             for widget in _walk_widgets(dialog)
             if isinstance(widget, ttk.Label)
         }
+        about_text = _text_widget_contents(dialog)
 
         self.assertEqual("About j3PdfSplit", dialog.title())
         self.assertIn(APP_NAME, label_texts)
-        self.assertIn(f"Version {app_version()}", label_texts)
+        self.assertIn(f"Version: {app_version()}", about_text)
+        self.assertIn(PROJECT_COPYRIGHT, about_text)
+        self.assertIn(PROJECT_LICENSE_NAME, about_text)
+        self.assertIn(f"Full license text:\n{PROJECT_LICENSE_FILE}", about_text)
+        self.assertIn(corresponding_source_url(), about_text)
+        self.assertIn(THIRD_PARTY_NOTICES_FILE, about_text)
+        self.assertIn(ABOUT_FILE, about_text)
         self.assertIn(AUTHOR_URL, label_texts)
+        self.assertIn(
+            "Licenses",
+            {
+                widget.cget("text")
+                for widget in _walk_widgets(dialog)
+                if isinstance(widget, ttk.Button)
+            },
+        )
 
     def test_about_link_opens_author_url(self) -> None:
         with patch("pdf_splitter.ui.main_window.open_url", return_value=True) as open_url_mock:
             self.application._on_about_link_clicked(None)
 
         open_url_mock.assert_called_once_with(AUTHOR_URL)
+
+    def test_license_dialog_shows_project_license_and_notices(self) -> None:
+        dialog = self.application._create_license_dialog()
+        self.addCleanup(dialog.destroy)
+
+        label_texts = {
+            widget.cget("text")
+            for widget in _walk_widgets(dialog)
+            if isinstance(widget, ttk.Label)
+        }
+
+        self.assertEqual("Licenses", dialog.title())
+        self.assertIn(f"{APP_NAME} is licensed under {PROJECT_LICENSE_NAME}.", label_texts)
+        self.assertIn("This program is distributed without warranty.", label_texts)
+        self.assertIn(f"Project license file: {PROJECT_LICENSE_FILE}", label_texts)
+        self.assertIn("Notice-required licenses:", label_texts)
+        notice_text = _text_widget_contents(dialog)
+        for license_notice in NOTICE_REQUIRED_LICENSES:
+            self.assertIn(license_notice.component, notice_text)
+            self.assertIn(f"Version: {license_notice.version}", notice_text)
+            self.assertIn(f"License: {license_notice.license_name}", notice_text)
+            self.assertIn(f"Copyright: {license_notice.copyright_notice}", notice_text)
+            self.assertIn(f"Source: {license_notice.source_url}", notice_text)
+            self.assertIn(
+                f"License text or notice file: {license_notice.license_file}",
+                notice_text,
+            )
+        self.assertIn(
+            f"Third-party notices are included in {THIRD_PARTY_NOTICES_FILE}.",
+            label_texts,
+        )
+        self.assertIn("Corresponding source code for this binary release:", label_texts)
+        self.assertIn(corresponding_source_url(), label_texts)
+        self.assertIn(PROJECT_LICENSE_URL, label_texts)
+
+    def test_license_link_opens_project_license_url(self) -> None:
+        with patch("pdf_splitter.ui.main_window.open_url", return_value=True) as open_url_mock:
+            self.application._on_license_link_clicked(None)
+
+        open_url_mock.assert_called_once_with(PROJECT_LICENSE_URL)
+
+    def test_source_link_opens_corresponding_source_url(self) -> None:
+        with patch("pdf_splitter.ui.main_window.open_url", return_value=True) as open_url_mock:
+            self.application._on_source_link_clicked(None)
+
+        open_url_mock.assert_called_once_with(corresponding_source_url())
 
 
 if __name__ == "__main__":

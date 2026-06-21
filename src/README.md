@@ -43,6 +43,16 @@ python pdf_splitter/main.py
 - `Pillow`: 렌더링된 이미지를 Tkinter에서 표시 가능한 썸네일로 가공하고 `ImageTk.PhotoImage`로 연결하는 데 필요합니다.
 - `tkinterdnd2`: OS 파일 관리자에서 PDF 파일을 Tkinter 창으로 드래그앤드롭해 열 수 있게 합니다.
 
+## 라이선스 고지
+
+이 프로젝트는 [GPL-3.0-or-later](LICENSE)로 배포됩니다. 외부 라이브러리 라이선스와 배포 전 확인 사항은 [THIRD_PARTY_NOTICES.txt](THIRD_PARTY_NOTICES.txt)에 정리합니다. PyInstaller 배포 빌드는 이 고지 파일, `about.txt`, Python/Tcl/Tk 런타임 라이선스 파일, `tkDND` 라이선스 조건을 번들에 포함하며, 누락되면 빌드 검증에서 실패합니다.
+
+`PyMuPDF` / `MuPDF`는 GNU AGPL 3.0 조건으로 사용합니다. 바이너리 릴리스는 같은 버전의 대응 소스 코드를 공개 소스 저장소에서 제공합니다.
+
+```text
+https://github.com/edgarp9/j3PdfSplit
+```
+
 ## 사용 방법
 
 1. `PDF 열기`를 눌러 원본 PDF를 선택하거나, PDF 파일을 앱 창에 드래그앤드롭합니다.
